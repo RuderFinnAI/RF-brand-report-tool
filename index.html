@@ -49,6 +49,9 @@
             .no-print {
                 display: none;
             }
+            .summary-content {
+                display: block !important; /* Ensure summaries are visible when printing */
+            }
         }
     </style>
 </head>
@@ -115,6 +118,7 @@
         const NEWS_API_KEY = "0766d05ccde94899bffd87b9e98dfc1d";
         const ALPHA_VANTAGE_API_KEY = "A4LU34HWTJSU74KB";
         const YOUTUBE_API_KEY = "AIzaSyAi6cEjWBXzwXkJZ-Ps4M3fGvRbprZIOPE";
+        const GEMINI_API_KEY = ""; // Leave blank
         // --- END OF CONFIGURATION ---
 
         const generateBtn = document.getElementById('generateBtn');
@@ -181,11 +185,8 @@
             const fromDate = new Date();
             fromDate.setDate(fromDate.getDate() - 30);
             const apiUrl = `https://newsapi.org/v2/everything?q="${query}"&from=${fromDate.toISOString().split('T')[0]}&sortBy=relevancy&language=en&pageSize=${pageSize}&apiKey=${NEWS_API_KEY}`;
-            
-            const proxyUrl = 'https://api.allorigins.win/raw?url=';
-            const url = proxyUrl + encodeURIComponent(apiUrl);
-
-            const response = await fetch(url);
+            const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(apiUrl);
+            const response = await fetch(proxyUrl);
             if (!response.ok) throw new Error(`News API error via proxy: ${response.statusText}`);
             const data = await response.json();
             return data.articles || [];
@@ -254,6 +255,30 @@
             };
             return Promise.resolve(profiles);
         }
+        
+        async function getSummary(article) {
+            const prompt = `Summarize the key points of this news article in 2-3 concise sentences for a public relations professional. Article Title: "${article.title}". Article Description: "${article.description}"`;
+            
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${GEMINI_API_KEY}`;
+            const payload = { contents: [{ parts: [{ text: prompt }] }] };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!response.ok) throw new Error(`Gemini API error: ${response.statusText}`);
+                const result = await response.json();
+                if (result.candidates && result.candidates[0]?.content?.parts[0]?.text) {
+                    return result.candidates[0].content.parts[0].text;
+                }
+                return "Could not generate summary.";
+            } catch (error) {
+                console.error("Error fetching summary:", error);
+                return "Error generating summary.";
+            }
+        }
 
         // --- Report Building Functions ---
 
@@ -298,11 +323,7 @@
             }
 
             if (newsData.length > 0) {
-                let newsHtml = newsData.map(article => createArticle(
-                    article.title,
-                    article.url,
-                    `${article.source.name} — ${new Date(article.publishedAt).toLocaleDateString()}`
-                )).join('');
+                let newsHtml = newsData.map((article, index) => createNewsArticle(article, `news-${index}`)).join('');
                 html += createSection('Recent News Highlights', newsHtml, '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3h3m-3 4h3m-3 4h3m-3 4h3" /></svg>', 'news');
             }
 
@@ -325,15 +346,24 @@
             }
 
             if (competitorName && competitorData.length > 0) {
-                let competitorHtml = competitorData.map(article => createArticle(
-                    article.title,
-                    article.url,
-                    `${article.source.name} — ${new Date(article.publishedAt).toLocaleDateString()}`
-                )).join('');
+                let competitorHtml = competitorData.map((article, index) => createNewsArticle(article, `competitor-${index}`)).join('');
                 html += createSection(`Competitor Snapshot: ${competitorName}`, competitorHtml, '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M15 21a6 6 0 00-9-5.197M4 7a4 4 0 118 0 4 4 0 01-8 0z" /></svg>', 'competitor');
             }
 
             reportOutput.innerHTML = html;
+            
+            document.querySelectorAll('.summarize-btn').forEach(button => {
+                button.addEventListener('click', async (e) => {
+                    const articleData = JSON.parse(e.target.dataset.article);
+                    const summaryDiv = document.getElementById(`summary-${e.target.dataset.id}`);
+                    summaryDiv.innerHTML = `<div class="flex items-center text-sm text-gray-500"><svg class="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>Summarizing...</div>`;
+                    summaryDiv.classList.remove('hidden');
+                    
+                    const summaryText = await getSummary(articleData);
+                    summaryDiv.innerHTML = summaryText;
+                    e.target.classList.add('hidden');
+                });
+            });
 
             if (stockHistoryData) {
                 renderStockChart(stockHistoryData);
@@ -357,6 +387,18 @@
                 <div class="border-l-4 rf-green-border pl-4 mb-4 hover:bg-gray-50 transition-colors duration-200 py-2">
                     <h4 class="font-semibold text-lg"><a href="${url}" target="_blank" class="text-blue-700 hover:underline">${title}</a></h4>
                     <p class="text-sm text-gray-600">${meta}</p>
+                </div>
+            `;
+        }
+        
+        function createNewsArticle(article, id) {
+            const escapedArticle = JSON.stringify(article).replace(/'/g, "&apos;");
+            return `
+                <div class="border-l-4 rf-green-border pl-4 mb-4 hover:bg-gray-50 transition-colors duration-200 py-2">
+                    <h4 class="font-semibold text-lg"><a href="${article.url}" target="_blank" class="text-blue-700 hover:underline">${article.title}</a></h4>
+                    <p class="text-sm text-gray-600">${article.source.name} — ${new Date(article.publishedAt).toLocaleDateString()}</p>
+                    <button data-id="${id}" data-article='${escapedArticle}' class="summarize-btn mt-2 text-xs rf-green-text font-semibold hover:underline">Summarize with AI</button>
+                    <div id="summary-${id}" class="summary-content hidden mt-2 text-sm text-gray-700 bg-gray-50 p-3 rounded-md border"></div>
                 </div>
             `;
         }
