@@ -262,9 +262,10 @@
         async function getSummary(article) {
             const prompt = `Summarize the key points of this news article in 2-3 concise sentences for a public relations professional. Article Title: "${article.title}". Article Description: "${article.description}"`;
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${GEMINI_API_KEY}`;
+            const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(apiUrl);
             const payload = { contents: [{ parts: [{ text: prompt }] }] };
             try {
-                const response = await fetch(apiUrl, {
+                const response = await fetch(proxyUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
@@ -284,9 +285,10 @@
         async function getCompanyOverview(brandName) {
             const prompt = `Provide a concise, neutral, one-paragraph overview of the company ${brandName}. Describe what they do, who their main customers are, and their general position in the market. This is for a public relations professional's briefing document.`;
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${GEMINI_API_KEY}`;
+            const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(apiUrl);
             const payload = { contents: [{ parts: [{ text: prompt }] }] };
             try {
-                const response = await fetch(apiUrl, {
+                const response = await fetch(proxyUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
@@ -308,12 +310,13 @@
             const prompt = `Analyze the sentiment of the following news headlines. Provide a percentage breakdown for "Positive", "Neutral", and "Negative" sentiment. Also provide a one-sentence summary of the overall tone. Return ONLY a JSON object with the keys: "positive", "neutral", "negative", and "summary".\n\nHeadlines:\n${headlines}`;
             
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${GEMINI_API_KEY}`;
+            const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(apiUrl);
             const payload = { 
                 contents: [{ parts: [{ text: prompt }] }],
                 generationConfig: { responseMimeType: "application/json" } 
             };
             try {
-                const response = await fetch(apiUrl, {
+                const response = await fetch(proxyUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
