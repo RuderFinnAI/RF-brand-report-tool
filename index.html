@@ -261,7 +261,6 @@
             const reportDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
             let html = `<h2 class="text-3xl font-bold text-gray-900 mb-8">${brandName} — ${reportDate}</h2>`;
             
-            // --- NEW: Build Table of Contents data ---
             const tocData = [];
             if (ticker && financialData) tocData.push({ title: 'Financial Snapshot', id: 'financials' });
             if (linkedinData) tocData.push({ title: 'Key LinkedIn Profiles', id: 'linkedin' });
@@ -274,10 +273,8 @@
                 let tocHtml = tocData.map(item => `
                     <a href="#section-${item.id}" class="block text-blue-700 hover:underline font-medium">${item.title}</a>
                 `).join('');
-                html += createSection('Report Overview', tocHtml, '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" /></svg>');
+                html += createSection('Report Overview', tocHtml, '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" /></svg>', 'overview');
             }
-
-            // --- RE-ORDERED SECTIONS ---
             
             if (ticker && financialData) {
                 html += createSection('Financial Snapshot', `
