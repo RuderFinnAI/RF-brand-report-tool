@@ -303,7 +303,6 @@
             }
         }
         
-        // --- NEW: AI Sentiment Analysis Function ---
         async function getOverallSentiment(newsArticles) {
             const headlines = newsArticles.map(article => article.title).join('\n');
             const prompt = `Analyze the sentiment of the following news headlines. Provide a percentage breakdown for "Positive", "Neutral", and "Negative" sentiment. Also provide a one-sentence summary of the overall tone. Return ONLY a JSON object with the keys: "positive", "neutral", "negative", and "summary".\n\nHeadlines:\n${headlines}`;
